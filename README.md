@@ -228,21 +228,22 @@
 
 ---
 
-### Project 2: ระบบควบคุมและมอนิเตอร์มอเตอร์ผ่าน IoT Web App & Firebase
+### Project 2: ระบบควบคุมแสงสว่างและตั้งเวลาอัจฉริยะผ่าน Firebase Realtime Database
 
-ระบบควบคุมและติดตามสถานะมอเตอร์ไฟฟ้ากระแสตรง (DC Motor) แบบเรียลไทม์ผ่านเครือข่ายอินเทอร์เน็ต ใช้ ESP32 เชื่อมต่อ Wi-Fi และส่งสถานะขึ้น **Firebase Realtime Database** สั่งงานผ่านเว็บแอปพลิเคชันแดชบอร์ดที่ออกแบบอย่างสวยงาม รองรับการปรับความเร็ว PWM, กลับทิศทางการหมุน (CW/CCW) และแสดงผลค่าโทรมาตร (Telemetry)
+ระบบควบคุมแสงสว่างและสภาพแวดล้อมอัจฉริยะ พัฒนาบนบอร์ด **ESP32 (MicroPython)** สื่อสารผ่านคลาวด์ **Firebase Realtime Database** สั่งงานและแสดงผลผ่านเว็บแดชบอร์ด **Core Control - Lighting System Interface** สไตล์มินิมอล รองรับการควบคุมการหรี่แสงไฟ LED ด้วยสัญญาณ PWM (1 kHz), ตรวจวัดระดับความเข้มแสงแวดล้อม (BH1750 Ambient Light Sensor), ระบบนาฬิกาเวลาจริงความแม่นยำสูง (DS3231 RTC), การตั้งเวลาเปิด-ปิดอัตโนมัติสองช่วงเวลา (Dual-Phase Scheduling), การกำหนดช่วงขอบเขตแสงอัตโนมัติ (Threshold Range) และการสื่อสารผ่าน Bluetooth Low Energy (BLE)
 
 <div align="center">
-  <img src="docs/screenshots/05-project2-motor-webapp-dashboard.png" alt="IoT DC Motor Dashboard" width="90%" />
+  <img src="docs/screenshots/05-project2-smart-lighting-dashboard.png" alt="Core Control Lighting Dashboard" width="90%" />
 </div>
 
 <br />
 
 #### คุณลักษณะเด่นของระบบ (Core Features):
-- **การสื่อสารสองทิศทางแบบเรียลไทม์ (Bidirectional IoT):** ส่งสถานะและรับคำสั่งผ่าน Firebase Realtime Database
-- **การควบคุมความเร็วมอเตอร์:** ควบคุมสัญญาณพัลส์วิดธ์มอดูเลชัน (PWM) ปรับระดับความเร็วได้ละเอียด 0 - 100%
-- **การเลือกทิศทางการหมุน:** ปรับสลับทิศทางการหมุน ตามเข็มนาฬิกา (Clockwise) และทวนเข็มนาฬิกา (Counter-Clockwise)
-- **ระบบมอนิเตอร์สถานะการเชื่อมต่อ:** มีไฟสถานะระบุสถานะ Online/Offline ของบอร์ด ESP32 แบบเรียลไทม์
+- **การควบคุมเอาต์พุตความสว่าง (PWM Output Level):** ปรับระดับความสว่าง 0 - 100% พร้อมปุ่มลัด Preset (0%, 25%, 50%, 75%, MAX)
+- **เซนเซอร์ตรวจวัดความเข้มแสง (Sensor Intelligence):** ตรวจจับระดับความเข้มแสงแบบเรียลไทม์ผ่านเซนเซอร์ BH1750 (หน่วย LUX) พร้อมระบบตั้งค่า Threshold Limits อัตโนมัติ
+- **การตั้งเวลาการทำงานสองเฟส (Dual-Phase Scheduling):** กำหนดเวลาเริ่ม-หยุดอิสระ 2 ช่วงเวลา (Phase 01 และ Phase 02) ซิงค์กับโมดูล DS3231 RTC
+- **การเชื่อมต่อคลาวด์สองทาง (Bi-directional Firebase RTDB):** รับส่งคำสั่งแบบเรียลไทม์ พร้อมระบบ Ping Handshake เพื่อการดึงข้อมูลสด
+- **อินพุตและการสื่อสารภายนอก:** รองรับ Matrix Keypad 4x4, หน้าจอ LCD 16x2 I2C และ Bluetooth Low Energy (BLE UART)
 
 ---
 
@@ -343,9 +344,9 @@ iot-microcontroller-coursework/
 │   │   ├── flowcharts/                     # ผังการทำงานระบบ (PNG, GraphML)
 │   │   └── docs/                           # เล่มรายงานโครงงานฉบับสมบูรณ์ (.docx)
 │   │
-│   └── 02-iot-dc-motor-firebase/           # ระบบควบคุมมอเตอร์ผ่าน IoT Web App & Firebase
-│       ├── firmware/                       # เฟิร์มแวร์ ESP32 เชื่อมต่อ Wi-Fi และ Firebase
-│       └── webapp/                         # เว็บแอปพลิเคชันแดชบอร์ด (HTML, CSS, JS)
+│   └── 02-iot-smart-lighting-firebase/     # ระบบควบคุมแสงสว่างและตั้งเวลาอัจฉริยะผ่าน Firebase
+│       ├── firmware/                       # ซอร์สโค้ด ESP32 MicroPython (Wi-Fi, Firebase, BLE, Keypad, PWM)
+│       └── webapp/                         # Core Control WebApp Dashboard (HTML, CSS, JS)
 │
 ├── labs/                                   # งานปฏิบัติการประจำสัปดาห์ (Lab 05 - Lab 18)
 │   ├── lab05-digital-io/

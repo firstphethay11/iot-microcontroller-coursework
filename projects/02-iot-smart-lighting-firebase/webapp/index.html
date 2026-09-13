@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Dashboard - Lighting Control</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #0ea5e9;
+            --accent-hover: #38bdf8;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.05);
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Chakra Petch', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .header {
+            grid-column: span 2;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 10px;
+        }
+
+        h1 { font-size: 1.8rem; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .big-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+            text-align: center;
+            font-family: monospace;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 12px;
+            justify-content: center;
+        }
+
+        input[type="number"] {
+            background: transparent;
+            border: none;
+            color: var(--accent-color);
+            font-size: 1.5rem;
+            font-weight: 700;
+            width: 60px;
+            text-align: center;
+            outline: none;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .btn-preset {
+            background: #334155;
+            color: white;
+            padding: 10px 5px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            border: 1px solid transparent;
+        }
+
+        .btn-preset:hover { background: var(--accent-color); color: #000; }
+
+        button {
+            cursor: pointer;
+            border: none;
+            font-weight: 700;
+            transition: all 0.2s;
+            border-radius: 10px;
+        }
+
+        .btn-primary { background: var(--accent-color); color: #000; padding: 12px; width: 100%; }
+        .btn-secondary { background: transparent; border: 1px solid var(--accent-color); color: var(--accent-color); padding: 10px; width: 100%; }
+        .btn-danger { background: #3f1616; color: var(--danger); border: 1px solid var(--danger); padding: 10px; width: 100%; }
+
+        button:active { transform: scale(0.98); }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            background: #000;
+            color: #94a3b8;
+        }
+
+        .status-active { color: #4ade80; box-shadow: 0 0 10px rgba(74, 222, 128, 0.2); }
+
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-color);
+            color: #000;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-weight: 700;
+            display: none;
+            z-index: 100;
+        }
+
+        @media (max-width: 850px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .header { grid-column: span 1; flex-direction: column; gap: 10px; }
+            .timer-box { flex-direction: column; text-align: center; gap: 15px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <div class="header">
+            <div>
+                <h1>CORE CONTROL</h1>
+                <p style="color: var(--text-dim); font-size: 0.8rem;">LIGHTING SYSTEM INTERFACE</p>
+            </div>
+            <div id="tmr-status" class="status-badge">AUTO MODE: WAITING</div>
+        </div>
+
+        <div class="card">
+            <span class="section-title">🔅 Output Level</span>
+            <div class="big-number"><span id="lux-display">-</span>%</div>
+            
+            <div class="preset-grid">
+                <button class="btn-preset" onclick="updateLuxDisplay(0)">0%</button>
+                <button class="btn-preset" onclick="updateLuxDisplay(25)">25%</button>
+                <button class="btn-preset" onclick="updateLuxDisplay(50)">50%</button>
+                <button class="btn-preset" onclick="updateLuxDisplay(75)">75%</button>
+                <button class="btn-preset" onclick="updateLuxDisplay(100)">MAX</button>
+            </div>
+
+            <div class="input-row">
+                Custom: <input type="number" id="lux-value" value="0" min="0" max="100"> %
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px;">
+                <button class="btn-primary" onclick="setBrightness()">UPDATE OUTPUT</button>
+                <button class="btn-secondary" onclick="requestReadLed()">READ LED</button>
+                <button class="btn-danger" onclick="stopBrightness()">OFF</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="section-title">📡 Sensor Intelligence</span>
+            <div class="big-number" id="lux-val" style="color: #fbbf24;">0 <small style="font-size: 1rem;">LUX</small></div>
+            
+            <div class="section-title" style="margin-top: 10px;">Threshold Range</div>
+            <div class="input-row">
+                <input type="number" id="lux-min" value="0">
+                <span style="color: var(--text-dim)">TO</span>
+                <input type="number" id="lux-max" value="0">
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn-secondary" onclick="sendCmd('3')">READ NOW</button>
+                <button class="btn-primary" onclick="setThreshold()">SET LIMITS</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="section-title">⏰ System Time</span>
+            <div class="input-row">
+                <input type="number" id="h" value="00">:
+                <input type="number" id="m" value="00">:
+                <input type="number" id="s" value="00">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+                <button class="btn-secondary" onclick="sendCmd('14')">GET TIME</button>
+                <button class="btn-primary" onclick="setClock()">SYNC SYSTEM CLOCK</button>
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 15px; margin-top: 5px;">
+                <span class="section-title" style="margin-bottom: 10px;">Auto-Mode Switch</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn-secondary" style="border-color: #444; color: #999;" onclick="setTimerMode('4')">DISABLE AUTO</button>
+                    <button class="btn-primary" style="background: #059669;" onclick="setTimerMode('5')">ENABLE AUTO</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="section-title">📅 Phase Scheduling</span>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px;">
+                    <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 10px;">PHASE 01</div>
+                    <small>START</small>
+                    <div class="input-row" style="padding: 5px; margin-bottom: 5px;">
+                        <input type="number" id="s1h" value="00" style="font-size: 1rem; width: 35px;">:
+                        <input type="number" id="s1m" value="00" style="font-size: 1rem; width: 35px;">:
+                        <input type="number" id="s1s" value="00" style="font-size: 1rem; width: 35px;">
+                        <button onclick="setSchedule('8')" style="background:none; color:var(--accent-color); font-size: 0.7rem;">SET</button>
+                    </div>
+                    <small>STOP</small>
+                    <div class="input-row" style="padding: 5px; margin-bottom: 10px;">
+                        <input type="number" id="e1h" value="00" style="font-size: 1rem; width: 35px;">:
+                        <input type="number" id="e1m" value="00" style="font-size: 1rem; width: 35px;">:
+                        <input type="number" id="e1s" value="00" style="font-size: 1rem; width: 35px;">
+                        <button onclick="setSchedule('9')" style="background:none; color:var(--accent-color); font-size: 0.7rem;">SET</button>
+                    </div>
+                    <button class="btn-secondary" style="width:100%; font-size: 0.7rem;" onclick="sendCmd('10')">Read T1</button>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px;">
+                    <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 10px;">PHASE 02</div>
+                    <small>START</small>
+                    <div class="input-row" style="padding: 5px; margin-bottom: 5px;">
+                        <input type="number" id="s2h" value="00" style="font-size: 1rem; width: 35px;">:
+                        <input type="number" id="s2m" value="00" style="font-size: 1rem; width: 35px;">:
+                        <input type="number" id="s2s" value="00" style="font-size: 1rem; width: 35px;">
+                        <button onclick="setSchedule('11')" style="background:none; color:var(--accent-color); font-size: 0.7rem;">SET</button>
+                    </div>
+                    <small>STOP</small>
+                    <div class="input-row" style="padding: 5px; margin-bottom: 10px;">
+                        <input type="number" id="e2h" value="00" style="font-size: 1rem; width: 35px;">:
+                        <input type="number" id="e2m" value="00" style="font-size: 1rem; width: 35px;">:
+                        <input type="number" id="e2s" value="00" style="font-size: 1rem; width: 35px;">
+                        <button onclick="setSchedule('12')" style="background:none; color:var(--accent-color); font-size: 0.7rem;">SET</button>
+                    </div>
+                    <button class="btn-secondary" style="width:100%; font-size: 0.7rem;" onclick="sendCmd('13')">Read T2</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: span 2;">
+            <span class="section-title">⏱️ Timer Status Checker</span>
+            <div class="timer-box" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 15px;">
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px;">CURRENT STATUS</div>
+                    <div id="timer-display-box" style="font-size: 2.5rem; font-weight: 700; color: #fbbf24; font-family: monospace;">WAITING...</div>
+                </div>
+                <button class="btn-primary" style="width: auto; padding: 15px 40px; font-size: 1.2rem;" onclick="requestReadTimer()">READ TIMER</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toast">COMMAND SENT</div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXEleLJ_JEXPnHwG6rAZom681ijazP9eM",
+            authDomain: "labfirebase-ffe94.firebaseapp.com",
+            databaseURL: "https://labfirebase-ffe94-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "labfirebase-ffe94"
+        }
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let allowLedUpdate = false;
+        let allowTimerUpdate = false;
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 2000);
+        }
+
+        function sendCmd(cmd) {
+            db.ref('command').set(cmd);
+            showToast("EXECUTING: " + cmd);
+        }
+
+        // 🌟 ทริคล้างค่า (Ping) บังคับ Firebase รีเฟรชก่อนอ่านค่า LED
+        function requestReadLed() {
+            allowLedUpdate = true;
+            document.getElementById('lux-display').textContent = "..."; 
+            db.ref('esp32').set("ping"); 
+            setTimeout(() => { sendCmd('15'); }, 100); // ดีเลย์นิดนึงให้บอร์ดรับคำสั่งทัน
+        }
+
+        // 🌟 ทริคล้างค่า (Ping) บังคับ Firebase รีเฟรชก่อนอ่านค่า TIMER
+        function requestReadTimer() {
+            allowTimerUpdate = true;
+            document.getElementById('timer-display-box').textContent = "READING...";
+            document.getElementById('timer-display-box').style.color = "#fbbf24";
+            db.ref('esp32').set("ping"); 
+            setTimeout(() => { sendCmd('16'); }, 100); // ดีเลย์นิดนึงให้บอร์ดรับคำสั่งทัน
+        }
+
+        function setTimerMode(cmd) {
+            sendCmd(cmd);
+        }
+
+        function setClock() {
+            const h = document.getElementById('h').value.padStart(2, '0');
+            const m = document.getElementById('m').value.padStart(2, '0');
+            const s = document.getElementById('s').value.padStart(2, '0');
+            sendCmd(`1,${h},${m},${s}`);
+        }
+
+        function setBrightness() {
+            const speed = document.getElementById('lux-value').value;
+            sendCmd(`2,${speed}`);
+        }
+
+        function stopBrightness() {
+            document.getElementById('lux-value').value = 0;
+            sendCmd('2,0');
+        }
+
+        function updateLuxDisplay(val) {
+            document.getElementById('lux-value').value = val;
+            sendCmd(`2,${val}`);
+        }
+
+        function setThreshold() {
+            const min = document.getElementById('lux-min').value;
+            const max = document.getElementById('lux-max').value;
+            sendCmd(`6,${min},${max}`);
+        }
+
+        function setSchedule(num) {
+            let prefix = num == '8' ? 's1' : num == '9' ? 'e1' : num == '11' ? 's2' : 'e2';
+            const h = document.getElementById(prefix + 'h').value.padStart(2, '0');
+            const m = document.getElementById(prefix + 'm').value.padStart(2, '0');
+            const s = document.getElementById(prefix + 's').value.padStart(2, '0');
+            sendCmd(`${num},${h},${m},${s}`);
+        }
+
+        // ตัวรับค่าจาก Firebase
+        db.ref('esp32').on('value', (snap) => {
+            const val = snap.val(); 
+            if (!val || val === "ping") return; // ข้ามถ้าเป็นข้อความ ping ขยะ
+            
+            if (val.includes("Bright:")) document.getElementById('lux-val').innerHTML = val.split(":")[1] + " <small style='font-size:1rem'>LUX</small>";
+            
+            if (val.includes("LED:") && allowLedUpdate) {
+                const ledVal = val.split(":")[1].trim();
+                document.getElementById('lux-display').textContent = ledVal;
+                document.getElementById('lux-value').value = ledVal; 
+                allowLedUpdate = false; 
+            }
+            
+            if (allowTimerUpdate) {
+                if (val.includes("Timer is on")) {
+                    document.getElementById('tmr-status').textContent = "AUTO MODE: ACTIVE";
+                    document.getElementById('tmr-status').classList.add('status-active');
+                    document.getElementById('tmr-status').style.color = "#4ade80";
+                    
+                    document.getElementById('timer-display-box').textContent = "TIMER IS ON";
+                    document.getElementById('timer-display-box').style.color = "#4ade80";
+                    allowTimerUpdate = false; 
+                } else if (val.includes("Timer is off")) {
+                    document.getElementById('tmr-status').textContent = "AUTO MODE: DISABLED";
+                    document.getElementById('tmr-status').classList.remove('status-active');
+                    document.getElementById('tmr-status').style.color = "#94a3b8";
+                    
+                    document.getElementById('timer-display-box').textContent = "TIMER IS OFF";
+                    document.getElementById('timer-display-box').style.color = "#ef4444";
+                    allowTimerUpdate = false; 
+                }
+            }
+
+            if (val.includes("Time:")) {
+                const t = val.split(":");
+                document.getElementById('h').value = t[1].trim();
+                document.getElementById('m').value = t[2];
+                document.getElementById('s').value = t[3];
+            }
+            if (val.includes("Period1:")) {
+                const t = val.split("-"); const s = t[0].split(":"); const e = t[1].split(":");
+                document.getElementById('s1h').value = s[1].trim(); document.getElementById('s1m').value = s[2].trim(); document.getElementById('s1s').value = s[3].trim();
+                document.getElementById('e1h').value = e[0].trim(); document.getElementById('e1m').value = e[1].trim(); document.getElementById('e1s').value = e[2].trim();
+            }
+            if (val.includes("Period2:")) {
+                const t = val.split("-"); const s = t[0].split(":"); const e = t[1].split(":");
+                document.getElementById('s2h').value = s[1].trim(); document.getElementById('s2m').value = s[2].trim(); document.getElementById('s2s').value = s[3].trim();
+                document.getElementById('e2h').value = e[0].trim(); document.getElementById('e2m').value = e[1].trim(); document.getElementById('e2s').value = e[2].trim();
+            }
+        });
+    </script>
+</body>
+
+</html>
