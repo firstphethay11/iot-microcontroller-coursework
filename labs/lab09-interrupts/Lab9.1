@@ -1,0 +1,128 @@
+import uasyncio as asyncio
+from machine import Pin, SoftI2C
+from time import sleep
+from i2c_lcd import I2cLcd
+
+# =========================================
+# 1. Hardware Setup (ตั้งค่าอุปกรณ์)
+# =========================================
+# I2C LCD
+try:
+    i2c = SoftI2C(scl=Pin(22), sda=Pin(21), freq=100000)
+    lcd = I2cLcd(i2c, 0x27, 2, 16)
+except:
+    lcd = None
+    print("LCD not found")
+
+# Keypad Setup
+key_matrix = [['1','2','3','A'], ['4','5','6','B'], ['7','8','9','C'], ['*','0','#','D']]
+colPins = [14, 15, 32, 33]
+rowPins = [4, 5, 12, 13]
+rows = [Pin(p, Pin.OUT) for p in rowPins]
+cols = [Pin(p, Pin.IN, Pin.PULL_DOWN) for p in colPins]
+
+# =========================================
+# 2. Helper Functions (ฟังก์ชันช่วยรับค่า)
+# =========================================
+
+def scan_keypad():
+    """ฟังก์ชันอ่านปุ่มกดแบบทันที (ไม่รอ)"""
+    for r in range(4):
+        rows[r].value(1)
+        for c in range(4):
+            if cols[c].value() == 1:
+                key = key_matrix[r][c]
+                while cols[c].value() == 1: pass # รอปล่อยปุ่ม
+                rows[r].value(0)
+                return key
+        rows[r].value(0)
+    return None
+
+def get_input_from_keypad():
+    """รับค่าตัวเลขจาก Keypad จนกว่าจะกด #"""
+    if lcd: lcd.clear(); lcd.putstr("T2 Max (Keypad):")
+    lcd.move_to(0, 1)
+    
+    input_str = ""
+    while True:
+        key = scan_keypad()
+        if key:
+            if key == '#': # กด # เพื่อยืนยัน
+                return int(input_str) if input_str else 0
+            elif key.isdigit():
+                input_str += key
+                if lcd: lcd.putstr(key)
+        sleep(0.1)
+
+# =========================================
+# 3. Async Tasks (งานที่จะทำพร้อมกัน)
+# =========================================
+
+async def task_1_monitor_count(max_val):
+    """งานที่ 1: นับเลขแสดงผลที่หน้าจอคอม (Shell)"""
+    print(f"\n[Task 1] Start counting to {max_val} on Monitor...")
+    for i in range(max_val + 1):
+        print(f"[Task 1 Monitor]: {i}")
+        # await asyncio.sleep สำคัญมาก! เพื่อเปิดจังหวะให้งานอื่นแทรกได้
+        await asyncio.sleep(1) 
+    print("[Task 1] Finished!")
+
+async def task_2_lcd_count(max_val):
+    """งานที่ 2: นับเลขแสดงผลที่จอ LCD"""
+    print(f"[Task 2] Start counting to {max_val} on LCD...")
+    for i in range(max_val + 1):
+        if lcd:
+            lcd.move_to(0, 0)
+            lcd.putstr(f"Task 2 Count: {i}  ") # เว้นวรรคเผื่อเลขลดหลัก
+            lcd.move_to(0, 1)
+            lcd.putstr(f"Max: {max_val}")
+        
+        # สมมติให้นับเร็วกว่านิดหน่อย หรือช้ากว่าก็ได้
+        await asyncio.sleep(0.8) 
+    
+    if lcd: 
+        lcd.move_to(0, 0)
+        lcd.putstr("Task 2 Done!    ")
+    print("[Task 2] Finished!")
+
+# =========================================
+# 4. Main Program
+# =========================================
+
+async def main():
+    # --- PHASE 1: รับค่า Input (ทำทีละอย่างก่อนเริ่ม) ---
+    print("--- Setup Phase ---")
+    
+    # 1. รับค่า Task 1 จาก Keyboard คอมพิวเตอร์
+    try:
+        max_1 = int(input("Enter Max for Task 1 (Keyboard): "))
+    except:
+        max_1 = 10 # ค่า Default ถ้าใส่ผิด
+        
+    print(f"Task 1 Set to: {max_1}")
+
+    # 2. รับค่า Task 2 จาก Keypad
+    print("Please enter Max for Task 2 on Keypad (End with #)...")
+    max_2 = get_input_from_keypad()
+    print(f"Task 2 Set to: {max_2}")
+    
+    if lcd: lcd.clear(); lcd.putstr("Starting Async..")
+    await asyncio.sleep(1)
+    if lcd: lcd.clear()
+
+    # --- PHASE 2: ทำงานพร้อมกัน (Concurrency) ---
+    print("\n--- Start Async Tasks ---")
+    
+    # ใช้ gather เพื่อรันทั้ง 2 ฟังก์ชันพร้อมกัน
+    await asyncio.gather(
+        task_1_monitor_count(max_1),
+        task_2_lcd_count(max_2)
+    )
+    
+    print("\nAll Tasks Completed.")
+
+# รันโปรแกรม
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print("Stopped")

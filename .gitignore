@@ -1,0 +1,20 @@
+# MicroPython / Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# IDE & OS
+.vscode/*
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Firebase / Node
+node_modules/
+.firebase/

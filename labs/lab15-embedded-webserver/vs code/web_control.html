@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Electric Device Control</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    margin:0;
+    background:#eef5ff;
+}
+
+/* HEADER */
+.header{
+    background:#4A90E2;
+    color:white;
+    padding:15px;
+    font-size:20px;
+    text-align:center;
+    font-weight:bold;
+}
+
+/* CONTAINER */
+.container{
+    max-width:500px;
+    margin:auto;
+    padding:15px;
+}
+
+/* CARD */
+.card{
+    background:white;
+    border-radius:12px;
+    padding:15px;
+    margin-bottom:15px;
+    box-shadow:0 3px 8px rgba(0,0,0,0.1);
+}
+
+/* ROW */
+.row{
+    margin-bottom:12px;
+}
+
+/* INPUT */
+input[type="number"]{
+    width:50px;
+    padding:5px;
+    text-align:center;
+    border-radius:6px;
+    border:1px solid #ccc;
+    font-size:16px;
+}
+
+/* STATUS BOX */
+.status-box{
+    display:inline-block;
+    width:55px;
+    text-align:center;
+    border-radius:6px;
+    border:1px solid #4A90E2;
+    padding:4px;
+    background:#e8f1ff;
+    font-weight:bold;
+}
+
+/* BUTTON */
+button{
+    padding:6px 12px;
+    border:none;
+    border-radius:6px;
+    font-size:15px;
+    cursor:pointer;
+    background:#4A90E2;
+    color:white;
+    margin-left:4px;
+}
+
+button:hover{
+    background:#357ABD;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+Electric Device Control
+</div>
+
+<div class="container">
+
+<div class="card">
+<div class="row">
+Time:<br>
+hh: <input type="number" id="h" value="{{H}}" onfocus="pauseClock()" onblur="resumeClock()">
+mm: <input type="number" id="m" value="{{M}}" onfocus="pauseClock()" onblur="resumeClock()">
+ss: <input type="number" id="s" value="{{S}}" onfocus="pauseClock()" onblur="resumeClock()">
+<br><br>
+<button onclick="location.href='/2/'">Read</button>
+<button onclick="setTime()">Set</button>
+</div>
+</div>
+
+
+<div class="card">
+<div class="row">
+Device Status:
+<span class="status-box">{{DEV_STAT}}</span>
+<button onclick="location.href='/3/'">OFF</button>
+<button onclick="location.href='/4/'">ON</button>
+</div>
+</div>
+
+
+<div class="card">
+<div class="row">
+Timer Status:
+<span class="status-box">{{TIM_STAT}}</span>
+<button onclick="location.href='/6/'">OFF</button>
+<button onclick="location.href='/7/'">ON</button>
+</div>
+</div>
+
+
+<div class="card">
+<div class="row">
+Start Time:<br>
+hh: <input type="number" id="sh1" value="{{SH1}}">
+mm: <input type="number" id="sm1" value="{{SM1}}">
+ss: <input type="number" id="ss1" value="{{SS1}}">
+<br><br>
+<button onclick="setStartTime()">Set</button>
+</div>
+</div>
+
+
+<div class="card">
+<div class="row">
+Stop Time:<br>
+hh: <input type="number" id="sh2" value="{{SH2}}">
+mm: <input type="number" id="sm2" value="{{SM2}}">
+ss: <input type="number" id="ss2" value="{{SS2}}">
+<br><br>
+<button onclick="setStopTime()">Set</button>
+</div>
+</div>
+
+</div>
+
+
+<script>
+
+function setTime(){
+let h=document.getElementById('h').value;
+let m=document.getElementById('m').value;
+let s=document.getElementById('s').value;
+location.href='/' + h + '/' + m + '/' + s + '/';
+}
+
+function setStartTime(){
+let h=document.getElementById('sh1').value;
+let m=document.getElementById('sm1').value;
+let s=document.getElementById('ss1').value;
+location.href='/9/' + h + '/' + m + '/' + s + '/';
+}
+
+function setStopTime(){
+let h=document.getElementById('sh2').value;
+let m=document.getElementById('sm2').value;
+let s=document.getElementById('ss2').value;
+location.href='/10/' + h + '/' + m + '/' + s + '/';
+}
+
+// --- ส่วนที่เพิ่มให้: นาฬิกาเดินเองแบบ Real-time ---
+let clockPaused = false;
+function pauseClock() { clockPaused = true; } 
+function resumeClock() { clockPaused = false; } 
+
+setInterval(function() {
+    if (!clockPaused) {
+        let h_el = document.getElementById('h');
+        let m_el = document.getElementById('m');
+        let s_el = document.getElementById('s');
+
+        let h = parseInt(h_el.value);
+        let m = parseInt(m_el.value);
+        let s = parseInt(s_el.value);
+
+        // ป้องกัน Error ถ้าจังหวะโหลดค่ายังไม่มา
+        if(isNaN(h) || isNaN(m) || isNaN(s)) return;
+
+        s++;
+        if (s >= 60) { s = 0; m++; }
+        if (m >= 60) { m = 0; h++; }
+        if (h >= 24) { h = 0; }
+
+        h_el.value = h.toString().padStart(2, '0');
+        m_el.value = m.toString().padStart(2, '0');
+        s_el.value = s.toString().padStart(2, '0');
+    }
+}, 1000); 
+
+</script>
+
+</body>
+</html>

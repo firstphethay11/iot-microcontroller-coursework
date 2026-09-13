@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Electric Device Control</title>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f0f0f0;
+      text-align: center;
+    }
+
+    .container {
+      width: 500px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    input {
+      width: 40px;
+      text-align: center;
+    }
+
+    button {
+      margin: 3px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background-color: #ddd;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h2>Electric Device Control</h2>
+
+    <p>
+      Time:
+      hh <input id="hh" value="00">
+      mm <input id="mm" value="00">
+      ss <input id="ss" value="00">
+
+      <button onclick="readTime()">Read</button>
+      <button onclick="setTime()">Set</button>
+    </p>
+
+    <p>
+      Temp:
+      <input id="temp" value="0.0">
+
+      <button onclick="readTemp()">Read</button>
+    </p>
+
+    <p>
+      Device Status:
+      <input id="devStatus" value="OFF" readonly>
+
+      <button onclick="devOff()">OFF</button>
+      <button onclick="devOn()">ON</button>
+      <button onclick="readDev()">Read</button>
+    </p>
+
+    <p>
+      Timer Status:
+      <input id="timerStatus" value="OFF" readonly>
+
+      <button onclick="timerOff()">OFF</button>
+      <button onclick="timerOn()">ON</button>
+      <button onclick="readTimer()">Read</button>
+    </p>
+
+    <p>
+      Start Time:
+      hh <input id="shh" value="00">
+      mm <input id="smm" value="00">
+      ss <input id="sss" value="00">
+
+      <button onclick="readStartTime()">Read</button>
+      <button onclick="setStartTime()">Set</button>
+    </p>
+
+    <p>
+      Stop Time:
+      hh <input id="phh" value="00">
+      mm <input id="pmm" value="00">
+      ss <input id="pss" value="00">
+
+      <button onclick="readStopTime()">Read</button>
+      <button onclick="setStopTime()">Set</button>
+    </p>
+
+    <p>
+      Start Temp:
+      <input id="startTemp" value="0.0">
+
+      <button onclick="readStartTemp()">Read</button>
+      <button onclick="setStartTemp()">Set</button>
+    </p>
+
+    <p>
+      Stop Temp:
+      <input id="stopTemp" value="0.0">
+
+      <button onclick="readStopTemp()">Read</button>
+      <button onclick="setStopTemp()">Set</button>
+    </p>
+
+  </div>
+
+  <script>
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXEleLJ_JEXPnHwG6rAZom681ijazP9eM",
+      authDomain: "labfirebase-ffe94.web.com",
+      databaseURL: "https://labfirebase-ffe94-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      projectId: "labfirebase-ffe94",
+      storageBucket: "labfirebase-ffe94.web.app",
+      messagingSenderId: "879391371652",
+      appId: "1:879391371652:web:27ee0f3bc135fe4c816dd1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    function send(cmd) {
+      db.ref("command").set(cmd + "#");
+    }
+
+    // --- ฟังก์ชันกดปุ่มส่งคำสั่ง ---
+    function readTime() { send("2"); }
+    function setTime() {
+      var h = document.getElementById("hh").value;
+      var m = document.getElementById("mm").value;
+      var s = document.getElementById("ss").value;
+      send("1," + h + "," + m + "," + s);
+    }
+
+    function readTemp() { send("11"); }
+
+    function devOn() { send("3,1"); }
+    function devOff() { send("3,0"); }
+    function readDev() { send("4"); }
+
+    function timerOn() { send("5,1"); }
+    function timerOff() { send("5,0"); }
+    function readTimer() { send("6"); }
+
+    function setStartTime() {
+      var h = document.getElementById("shh").value;
+      var m = document.getElementById("smm").value;
+      var s = document.getElementById("sss").value;
+      send("7," + h + "," + m + "," + s);
+    }
+    function readStartTime() { send("8"); }
+
+    function setStopTime() {
+      var h = document.getElementById("phh").value;
+      var m = document.getElementById("pmm").value;
+      var s = document.getElementById("pss").value;
+      send("9," + h + "," + m + "," + s);
+    }
+    function readStopTime() { send("10"); }
+
+    function setStartTemp() {
+      var t = document.getElementById("startTemp").value;
+      send("12," + t);
+    }
+    function readStartTemp() { send("13"); }
+
+    function setStopTemp() {
+      var t = document.getElementById("stopTemp").value;
+      send("14," + t);
+    }
+    function readStopTemp() { send("15"); }
+
+
+    // =========================================================================
+    // โค้ดส่วนนี้จะคอยฟังเสียงตอบรับจาก ESP32 (เมื่อกดปุ่ม Read ต่างๆ)
+    // =========================================================================
+    db.ref("esp32").on("value", function(snapshot) {
+      let data = snapshot.val();
+      
+      if(data) {
+        // ลบเครื่องหมาย " และ # ออก เพื่อให้เหลือแค่ข้อความเพียวๆ
+        let text = data.replace(/"/g, '').replace('#', '');
+        console.log("ESP32 Reply: ", text); // พิมพ์ค่าที่รับมาลงใน Console ของเว็บเพื่อใช้เช็ค Error ได้
+
+        // 1. รับค่าอุณหภูมิปัจจุบัน (จากการกด Read Temp)
+        if(text.startsWith("Temp:")) {
+          document.getElementById("temp").value = text.replace("Temp:", "");
+        }
+        
+        // 2. รับค่าเวลาปัจจุบัน (จากการกด Read Time)
+        else if(text.startsWith("Time:")) {
+           let times = text.replace("Time:", "").split(":");
+           document.getElementById("hh").value = times[0];
+           document.getElementById("mm").value = times[1];
+           document.getElementById("ss").value = times[2];
+        }
+        
+        // 3. รับสถานะอุปกรณ์ (จากการกด Read Device Status)
+        else if(text.includes("DEV is")) {
+          document.getElementById("devStatus").value = text.includes("ON") ? "ON" : "OFF";
+        }
+        
+        // 4. รับสถานะ Timer (จากการกด Read Timer Status)
+        else if(text.includes("TIMER is")) {
+          document.getElementById("timerStatus").value = text.includes("ON") ? "ON" : "OFF";
+        }
+        
+        // 5. รับค่าเวลาเริ่ม (จากการกด Read Start Time)
+        else if(text.startsWith("Start Time:")) {
+           let times = text.replace("Start Time:", "").split(":");
+           document.getElementById("shh").value = times[0];
+           document.getElementById("smm").value = times[1];
+           document.getElementById("sss").value = times[2];
+        }
+        
+        // 6. รับค่าเวลาหยุด (จากการกด Read Stop Time)
+        else if(text.startsWith("Stop Time:")) {
+           let times = text.replace("Stop Time:", "").split(":");
+           document.getElementById("phh").value = times[0];
+           document.getElementById("pmm").value = times[1];
+           document.getElementById("pss").value = times[2];
+        }
+        
+        // 7. รับค่าอุณหภูมิเริ่ม (จากการกด Read Start Temp)
+        else if(text.startsWith("Start Temp:")) {
+          document.getElementById("startTemp").value = text.replace("Start Temp:", "");
+        }
+        
+        // 8. รับค่าอุณหภูมิหยุด (จากการกด Read Stop Temp)
+        else if(text.startsWith("Stop Temp:")) {
+          document.getElementById("stopTemp").value = text.replace("Stop Temp:", "");
+        }
+      }
+    });
+
+  </script>
+
+</body>
+
+</html>

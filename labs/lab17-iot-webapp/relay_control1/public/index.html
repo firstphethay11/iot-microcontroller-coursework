@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Electric Device Control</title>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-database.js"></script>
+
+  <style>
+    body {
+      font-family: "Times New Roman";
+      background: #f6f6f6;
+      margin: 40px;
+    }
+
+    .container {
+      background: white;
+      padding: 25px;
+      width: 520px;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .row {
+      margin-bottom: 12px;
+    }
+
+    input {
+      width: 35px;
+      text-align: center;
+    }
+
+    .status-box {
+      display: inline-block;
+      width: 45px;
+      height: 22px;
+      border: 1px solid #666;
+      background: #fafafa;
+      text-align: center;
+      line-height: 22px;
+      margin-right: 6px;
+    }
+
+    button {
+      padding: 2px 8px;
+      border: 1px solid #666;
+      background: #eaeaea;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #dcdcdc;
+    }
+  </style>
+
+  <script>
+
+    const firebaseConfig = {
+
+      apiKey: "AIzaSyBXEleLJ_JEXPnHwG6rAZom681ijazP9eM",
+      authDomain: "labfirebase-ffe94.firebaseapp.com",
+      databaseURL: "https://labfirebase-ffe94-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "labfirebase-ffe94",
+      storageBucket: "labfirebase-ffe94.appspot.com",
+      messagingSenderId: "879391371652",
+      appId: "1:879391371652:web:27ee0f3bc135fe4c816dd1"
+
+    }
+
+    firebase.initializeApp(firebaseConfig)
+
+    const db = firebase.database()
+
+    function sendCommand(cmd) {
+
+      db.ref("command").set(cmd)
+
+    }
+
+    function setTime() {
+
+      let hh = document.getElementById("t_hh").value || "00"
+      let mm = document.getElementById("t_mm").value || "00"
+      let ss = document.getElementById("t_ss").value || "00"
+
+      sendCommand(`1,${hh},${mm},${ss}#`)
+
+    }
+
+    function setStartTime() {
+
+      let hh = document.getElementById("st_hh").value || "00"
+      let mm = document.getElementById("st_mm").value || "00"
+      let ss = document.getElementById("st_ss").value || "00"
+
+      sendCommand(`7,${hh},${mm},${ss}#`)
+
+    }
+
+    function setStopTime() {
+
+      let hh = document.getElementById("sp_hh").value || "00"
+      let mm = document.getElementById("sp_mm").value || "00"
+      let ss = document.getElementById("sp_ss").value || "00"
+
+      sendCommand(`9,${hh},${mm},${ss}#`)
+
+    }
+
+    db.ref("esp32").on("value", (snap) => {
+
+      let msg = snap.val()
+
+      if (!msg) return
+
+      if (msg.includes("DEV is on"))
+        document.getElementById("dev_status").innerText = "ON"
+
+      if (msg.includes("DEV is off"))
+        document.getElementById("dev_status").innerText = "OFF"
+
+      if (msg.includes("TIMER is on"))
+        document.getElementById("timer_status").innerText = "ON"
+
+      if (msg.includes("TIMER is off"))
+        document.getElementById("timer_status").innerText = "OFF"
+
+      if (msg.includes("Time:")) {
+
+        let t = msg.replace("Time:", "").replace("#", "").split(":")
+
+        document.getElementById("t_hh").value = t[0]
+        document.getElementById("t_mm").value = t[1]
+        document.getElementById("t_ss").value = t[2]
+
+      }
+
+      if (msg.includes("Start Time:")) {
+
+        let t = msg.replace("Start Time:", "").replace("#", "").split(":")
+
+        document.getElementById("st_hh").value = t[0]
+        document.getElementById("st_mm").value = t[1]
+        document.getElementById("st_ss").value = t[2]
+
+      }
+
+      if (msg.includes("Stop Time:")) {
+
+        let t = msg.replace("Stop Time:", "").replace("#", "").split(":")
+
+        document.getElementById("sp_hh").value = t[0]
+        document.getElementById("sp_mm").value = t[1]
+        document.getElementById("sp_ss").value = t[2]
+
+      }
+
+    })
+
+  </script>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h2>Electric Device Control</h2>
+
+    <div class="row">
+
+      Time:
+
+      hh:<input id="t_hh" value="00">
+      mm:<input id="t_mm" value="00">
+      ss:<input id="t_ss" value="00">
+
+      <button onclick="sendCommand('2#')">Read</button>
+      <button onclick="setTime()">Set</button>
+
+    </div>
+
+
+    <div class="row">
+
+      Device Status:
+
+      <span class="status-box" id="dev_status">OFF</span>
+
+      <button onclick="sendCommand('3,0#')">OFF</button>
+      <button onclick="sendCommand('3,1#')">ON</button>
+      <button onclick="sendCommand('4#')">Read</button>
+
+    </div>
+
+
+    <div class="row">
+
+      Timer Status:
+
+      <span class="status-box" id="timer_status">OFF</span>
+
+      <button onclick="sendCommand('5,0#')">OFF</button>
+      <button onclick="sendCommand('5,1#')">ON</button>
+      <button onclick="sendCommand('6#')">Read</button>
+
+    </div>
+
+
+    <div class="row">
+
+      Start Time:
+
+      hh:<input id="st_hh" value="00">
+      mm:<input id="st_mm" value="00">
+      ss:<input id="st_ss" value="00">
+
+      <button onclick="sendCommand('8#')">Read</button>
+      <button onclick="setStartTime()">Set</button>
+
+    </div>
+
+
+    <div class="row">
+
+      Stop Time:
+
+      hh:<input id="sp_hh" value="00">
+      mm:<input id="sp_mm" value="00">
+      ss:<input id="sp_ss" value="00">
+
+      <button onclick="sendCommand('10#')">Read</button>
+      <button onclick="setStopTime()">Set</button>
+
+    </div>
+
+  </div>
+
+</body>
+
+</html>

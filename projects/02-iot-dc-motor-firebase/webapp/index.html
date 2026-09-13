@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DC Motor Control</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --sakura-bg: linear-gradient(135deg, #fff5f6 0%, #ffdee1 100%);
+            --sakura-pink: #ffb7c5;
+            --sakura-dark: #ff8fa3;
+            --sakura-soft: #fff0f3;
+            --text-color: #5d4e50;
+            --card-white: rgba(255, 255, 255, 0.9);
+            --border-color: #ffd1dc;
+            --shadow: 0 10px 30px rgba(255, 183, 197, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Chakra Petch', sans-serif;
+            background: var(--sakura-bg);
+            background-attachment: fixed;
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-white);
+            padding: 35px;
+            border-radius: 40px;
+            box-shadow: var(--shadow);
+            border: 3px solid #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '🌸';
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 5rem;
+            opacity: 0.1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        h1 {
+            color: var(--sakura-dark);
+            font-weight: 700;
+            font-size: 2.2rem;
+            text-shadow: 2px 2px 0px #fff;
+            margin-bottom: 10px;
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            background: #fff;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            color: var(--sakura-dark);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .section-label {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--sakura-dark);
+            margin: 25px 0 12px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 25px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 5px 15px rgba(255, 183, 197, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: var(--sakura-pink);
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            background: var(--sakura-soft);
+            justify-content: center;
+            padding: 10px 18px;
+            border-radius: 15px;
+            border: 2px solid var(--border-color);
+            gap: 5px;
+            font-weight: 600;
+        }
+
+        input[type="number"] {
+            width: 100px;
+            border: none;
+            background: transparent;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--sakura-dark);
+            outline: none;
+        }
+
+        .wide-input {
+            width: 90px !important;
+        }
+
+        /* Slider Customization */
+        .slider-container {
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 12px;
+            border-radius: 10px;
+            background: var(--border-color);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--sakura-dark);
+            cursor: pointer;
+            border: 4px solid #fff;
+            box-shadow: var(--shadow);
+        }
+
+        .speed-display {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--sakura-dark);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 15px;
+            border: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-set {
+            background: var(--sakura-dark);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 143, 163, 0.4);
+        }
+
+        .btn-read {
+            background: #fff;
+            border: 2px solid var(--sakura-dark);
+            color: var(--sakura-dark);
+        }
+
+        .btn-off {
+            background: #d1cfcf;
+            color: white;
+        }
+
+        .btn-on {
+            background: #ffb1c1;
+            color: white;
+        }
+
+        button:hover {
+            filter: brightness(1.05);
+            transform: scale(1.02);
+        }
+
+        .status-box {
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-weight: 700;
+            background: #fff;
+            border: 2px solid var(--border-color);
+            color: var(--sakura-dark);
+            transition: all 0.3s;
+        }
+
+        .status-on {
+            border-color: var(--sakura-dark);
+            background: var(--sakura-soft);
+        }
+
+        .lux-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--sakura-dark);
+            padding: 15px;
+            background: var(--sakura-soft);
+            border-radius: 20px;
+            border: 2px dashed var(--sakura-pink);
+            text-align: center;
+        }
+
+        .mini-card {
+            background: #fffafb;
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .mini-card-label {
+            font-size: 0.8rem;
+            color: #b39b9d;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-left: 5px solid var(--sakura-dark);
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            display: flex;
+            animation: slideIn 0.4s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                border-radius: 30px;
+            }
+
+            .row {
+                flex-direction: column;
+            }
+
+            .btn-group {
+                width: 100%;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>DC Motor Control Panel</h1>
+        </div>
+
+        <span class="section-label">🕒 ระบบเวลา</span>
+        <div class="card">
+            <div class="row">
+                <div class="input-group">
+                    <input type="number" id="h" value="00" min="0" max="23"> :
+                    <input type="number" id="m" value="00" min="0" max="59"> :
+                    <input type="number" id="s" value="00" min="0" max="59">
+                </div>
+                <div>
+                    <button class="btn-read" onclick="sendCmd('14')">read</button>
+                    <button class="btn-set" onclick="setClock()">Set</button>
+                </div>
+
+            </div>
+        </div>
+
+        <span class="section-label">⚡ ควบคุมความสว่าง</span>
+        <div class="card">
+            <div class="speed-display"><span id="lux-display">0</span>%</div>
+            <div class="slider-container">
+                <input type="range" class="slider" id="lux-slider" min="0" max="100" value="0"
+                    oninput="updateLuxDisplay(this.value)">
+            </div>
+            <div class="row">
+                <div class="input-group">
+                    Brightness: <input type="number" id="lux-value" class="wide-input" value="0" min="0" max="100"
+                        oninput="syncSlider(this.value)"> %
+                </div>
+                <div class="btn-group">
+                    <button class="btn-set" onclick="setBrightness()">Update</button>
+                    <button class="btn-off" onclick="stopBrightness()">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <span class="section-label">💡 เซนเซอร์แสง</span>
+        <div class="card">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div class="mini-card" style="text-align: center;">
+                    <div class="mini-card-label">ความสว่างขณะนี้</div>
+                    <div class="lux-display" id="lux-val">0 lux</div>
+                    <button class="btn-read" onclick="sendCmd('3')" style="margin-top: 15px; width: 100%;">Read
+                        Sensor</button>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-card-label">ช่วงค่าความสว่าง (Min - Max)</div>
+                    <div class="input-group" style="margin: 10px 0;">
+                        <input type="number" id="lux-min" value="0" class="wide-input"> -
+                        <input type="number" id="lux-max" value="0" class="wide-input">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn-read" onclick="sendCmd('7')">Read</button>
+                        <button class="btn-set" onclick="setThreshold()">Set</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <span class="section-label">🗓 ตั้งค่า Timer </span>
+        <div class="card">
+            <div class="row" style="margin-bottom: 20px;">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <span style="font-weight: 700;">สถานะไทเมอร์:</span>
+                    <div id="tmr-status" class="status-box">OFF</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-off" onclick="sendCmd('4')">ปิดการทำงาน</button>
+                    <button class="btn-on" onclick="sendCmd('5')">เปิดการทำงาน</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="mini-card" style="display: flex; width: 100%;">
+                    <div style="width: 100%;">
+                        <div style="margin-bottom: 10px; width: 100%;">
+                            <div class="mini-card-label">ช่วงเวลาที่ 1</div>
+                            Start:
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <div class="input-group">
+                                    <input type="number" id="s1h" value="00">:<input type="number" id="s1m"
+                                        value="00">:<input type="number" id="s1s" value="00">
+                                </div>
+                                <div>
+                                    <button class="btn-set" onclick="setSchedule('8')" style="flex:1">Set</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            Stop:
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <div class="input-group">
+                                    <input type="number" id="e1h" value="00">:<input type="number" id="e1m"
+                                        value="00">:<input type="number" id="e1s" value="00">
+                                </div>
+                                <div>
+                                    <button class="btn-set" onclick="setSchedule('9')" style="flex:1">Set</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="width: 100%;">
+                            <button class="btn-read" onclick="sendCmd('10')" style="flex:1; width: 100%;">read</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mini-card" style="display: flex; width: 100%; margin-top: 10px;">
+                    <div style="width: 100%;">
+                        <div style="margin-bottom: 10px; width: 100%;">
+                            <div class="mini-card-label">ช่วงเวลาที่ 2</div>
+                            Start:
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <div class="input-group">
+                                    <input type="number" id="s2h" value="00">:<input type="number" id="s2m"
+                                        value="00">:<input type="number" id="s2s" value="00">
+                                </div>
+                                <div>
+                                    <button class="btn-set" onclick="setSchedule('11')" style="flex:1">Set</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            Stop:
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <div class="input-group">
+                                    <input type="number" id="e2h" value="00">:<input type="number" id="e2m"
+                                        value="00">:<input type="number" id="e2s" value="00">
+                                </div>
+                                <div>
+                                    <button class="btn-set" onclick="setSchedule('12')" style="flex:1">Set</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="width: 100%;">
+                            <button class="btn-read" onclick="sendCmd('13')" style="flex:1; width: 100%;">read</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <span style="font-size: 1.5rem;">🌸</span>
+        <span id="toast-message" style="font-weight: 700; color: var(--text-color);">Success!</span>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXEleLJ_JEXPnHwG6rAZom681ijazP9eM",
+            authDomain: "labfirebase-ffe94.firebaseapp.com",
+            databaseURL: "https://labfirebase-ffe94-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "labfirebase-ffe94"
+        }
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function sendCmd(cmd) {
+            db.ref('command').set(cmd);
+            showToast("ส่งคำสั่ง " + cmd + " เรียบร้อย");
+        }
+
+        function setClock() {
+            const h = document.getElementById('h').value.padStart(2, '0');
+            const m = document.getElementById('m').value.padStart(2, '0');
+            const s = document.getElementById('s').value.padStart(2, '0');
+            sendCmd(`1,${h},${m},${s}`);
+        }
+
+        function setBrightness() {
+            const speed = document.getElementById('lux-value').value;
+            sendCmd(`2,${speed}`);
+        }
+
+        function stopBrightness() {
+            updateLuxDisplay(0);
+            sendCmd('2,0');
+        }
+
+        function updateLuxDisplay(val) {
+            document.getElementById('lux-display').textContent = val;
+            document.getElementById('lux-slider').value = val;
+            document.getElementById('lux-value').value = val;
+        }
+
+        function syncSlider(val) {
+            document.getElementById('lux-slider').value = val;
+            document.getElementById('lux-display').textContent = val;
+        }
+
+        function setThreshold() {
+            const min = document.getElementById('lux-min').value;
+            const max = document.getElementById('lux-max').value;
+            sendCmd(`6,${min},${max}`);
+        }
+
+        function setSchedule(num) {
+            let prefix = num == '8' ? 's1' : num == '9' ? 'e1' : num == '11' ? 's2' : 'e2';
+            const h = document.getElementById(prefix + 'h').value.padStart(2, '0');
+            const m = document.getElementById(prefix + 'm').value.padStart(2, '0');
+            const s = document.getElementById(prefix + 's').value.padStart(2, '0');
+            sendCmd(`${num},${h},${m},${s}`);
+        }
+
+        // Firebase Listener
+        db.ref('esp32').on('value', (snap) => {
+            const val = snap.val(); if (!val) return;
+            if (val.includes("Bright:")) document.getElementById('lux-val').textContent = val.split(":")[1] + " lux";
+            if (val.includes("Light range:")) {
+                const r = val.split("-");
+                const l_min = r[0].split(':');
+                document.getElementById("lux-min").value = l_min[1].trim()
+                document.getElementById("lux-max").value = r[1].trim()
+            }
+
+            if (val.includes("Timer is on")) {
+                document.getElementById('tmr-status').textContent = "ON";
+                document.getElementById('tmr-status').className = "status-box status-on";
+            } else if (val.includes("Timer is off")) {
+                document.getElementById('tmr-status').textContent = "OFF";
+                document.getElementById('tmr-status').className = "status-box";
+            }
+
+            if (val.includes("Time:")) {
+                const t = val.split(":");
+                document.getElementById('h').value = t[1].trim();
+                document.getElementById('m').value = t[2];
+                document.getElementById('s').value = t[3];
+            }
+            if (val.includes("Period1:")) {
+                const t = val.split("-");
+                const s = t[0].split(":");
+                const e = t[1].split(":");
+                document.getElementById('s1h').value = s[1].trim();
+                document.getElementById('s1m').value = s[2].trim();
+                document.getElementById('s1s').value = s[3].trim();
+                document.getElementById('e1h').value = e[0].trim();
+                document.getElementById('e1m').value = e[1].trim();
+                document.getElementById('e1s').value = e[2].trim();
+            }
+            if (val.includes("Period2:")) {
+                const t = val.split("-");
+                const s = t[0].split(":");
+                const e = t[1].split(":");
+                document.getElementById('s2h').value = s[1].trim();
+                document.getElementById('s2m').value = s[2].trim();
+                document.getElementById('s2s').value = s[3].trim();
+                document.getElementById('e2h').value = e[0].trim();
+                document.getElementById('e2m').value = e[1].trim();
+                document.getElementById('e2s').value = e[2].trim();
+            }
+        });
+    </script>
+</body>
+
+</html>
